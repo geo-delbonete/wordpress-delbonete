@@ -1,7 +1,7 @@
 // Viaje Maschwitz -> Retiro. Script vinculado a la planilla "Viaje Retiro 28-11".
 // Pestaña 1 ("Joven"): listado de jóvenes. Autos y Reservas se crean solas.
 
-const ZONAS = ["Maschwitz pueblo","La Bota","Villanueva","Cantón / San Matías / Puertos","Escobar","Savio / Ruta 26","La Pista","Otro"];
+const ZONAS = ["Maschwitz pueblo","La Bota","Villanueva","Cantón / San Matías / Puertos","Escobar","Savio / Ruta 26","La Pista","Las Chacras","Otro"];
 const H_AUTOS = ["id","driver","kidId","kid","zona","ref","seats","uid","ts","alias"];
 const H_RES = ["id","kidId","kid","zona","autoId","uid","ts"];
 

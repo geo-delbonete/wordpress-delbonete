@@ -74,7 +74,7 @@ body.busy #view{pointer-events:none;opacity:.55;transition:opacity .15s}
 </main>
 <div id="toast" class="toast" hidden></div>
 <script>
-const ZONAS=["Maschwitz pueblo","La Bota","Villanueva","Cantón / San Matías / Puertos","Escobar","Savio / Ruta 26","La Pista","Otro"];
+const ZONAS=["Maschwitz pueblo","La Bota","Villanueva","Cantón / San Matías / Puertos","Escobar","Savio / Ruta 26","La Pista","Las Chacras","Otro"];
 const $=s=>document.querySelector(s);
 let UID="";try{UID=localStorage.getItem("viaje-uid")||"";if(!UID){UID=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("viaje-uid",UID)}}catch(e){UID=UID||Math.random().toString(36).slice(2)}
 const state={autos:[],res:[],kids:[],loaded:false,form:{seats:3,zona:0,kid:null,q:"",can:null,name:"",ref:"",alias:""}};
