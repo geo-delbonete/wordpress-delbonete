@@ -2,7 +2,7 @@
 // Pestaña 1 ("Joven"): listado de jóvenes. Autos y Reservas se crean solas.
 
 const ZONAS = ["Maschwitz pueblo","La Bota","Villanueva","Cantón / San Matías / Puertos","Escobar","Savio / Ruta 26","La Pista","Otro"];
-const H_AUTOS = ["id","driver","kidId","kid","zona","ref","seats","uid","ts"];
+const H_AUTOS = ["id","driver","kidId","kid","zona","ref","seats","uid","ts","alias"];
 const H_RES = ["id","kidId","kid","zona","autoId","uid","ts"];
 
 function doGet() {
@@ -50,10 +50,11 @@ function viajeApi(name, body, uid) {
 
     if (name === "add_auto") {
       const driver = clean_(body.driver), ref = clean_(body.ref, 120), kidId = clean_(body.kidId, 100), kid = clean_(body.kid, 100);
-      const zona = Number(body.zona), seats = Number(body.seats);
+      const zona = Number(body.zona), seats = Number(body.seats), alias = clean_(body.alias, 40);
       if (!driver || !kidId || !kid || !ref || !uid || !(seats >= 0 && seats <= 8) || !(zona >= 0 && zona < ZONAS.length)) err = "Faltan datos";
+      else if (alias && !/^[A-Za-z0-9][A-Za-z0-9._-]{5,29}$/.test(alias)) err = "El alias no es válido (6 a 30 letras, números, punto o guion)";
       else if (conAuto(kidId)) err = "Ese joven ya tiene lugar";
-      else { dropWaiting(kidId); autos.push({ id: Utilities.getUuid().slice(0, 8), driver, kidId, kid, zona, ref, seats, uid, ts: Date.now() }); changed = true; }
+      else { dropWaiting(kidId); autos.push({ id: Utilities.getUuid().slice(0, 8), driver, kidId, kid, zona, ref, seats, uid, ts: Date.now(), alias }); changed = true; }
     } else if (name === "add_res") {
       const kidId = clean_(body.kidId, 100), kid = clean_(body.kid, 100), zona = Number(body.zona), autoId = body.autoId || "";
       if (!kidId || !kid || !uid || !(zona >= 0 && zona < ZONAS.length)) err = "Faltan datos";
@@ -77,7 +78,7 @@ function viajeApi(name, body, uid) {
 
     if (err) return { error: err };
     if (changed) { write_(shA, H_AUTOS, autos); write_(shR, H_RES, res); }
-    const mark = list => list.map(x => { const o = Object.assign({}, x); o.mine = (x.uid === uid); delete o.uid; if ("autoId" in o) o.autoId = o.autoId || null; return o; });
+    const mark = list => list.map(x => { const o = Object.assign({}, x); o.mine = (x.uid === uid); delete o.uid; if ("autoId" in o) o.autoId = o.autoId || null; if ("alias" in o) o.alias = String(o.alias || ""); return o; });
     return { kids, autos: mark(autos), res: mark(res) };
   } finally {
     lock.releaseLock();
