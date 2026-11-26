@@ -165,31 +165,6 @@ function vistaInicio(v){
       el("div",{},el("b",{},lib),"lugares libres"),
       el("div",{},el("b",{},falta),"sin lugar"))));
   if(falta>lib)v.append(el("p",{class:"note"},"Faltan "+(falta-lib)+" lugares: hacen falta más autos."));
-  v.append(el("h2",{},"Autos"));
-  if(!state.autos.length)v.append(el("div",{class:"card empty"},"Todavía no hay autos anotados. Sumá el tuyo arriba, en “Mi hije”."));
-  else{
-    const c=el("div",{class:"card"});
-    state.autos.slice().sort((a,b)=>a.zona-b.zona).forEach(a=>{
-      const l=libres(a),kids=state.res.filter(r=>r.autoId===a.id);
-      c.append(el("div",{class:"row"},
-        el("div",{class:"grow"},
-          el("div",{class:"t"},a.driver),
-          el("div",{class:"s"},"Sale de: "+ZONAS[a.zona]+(a.ref?" · "+a.ref:"")),
-          el("div",{class:"s"},"Lleva a: "+[a.kid,...kids.map(k=>k.kid)].join(", "))),
-        el("span",{class:"pill"+(l?"":" full")},l?l+(l===1?" lugar":" lugares"):"Completo")));
-    });
-    v.append(c);
-  }
-  const sin=state.kids.filter(k=>!conAuto(k.id));
-  if(sin.length){
-    v.append(el("h2",{},"Sin auto todavía ("+sin.length+")"));
-    const c=el("div",{class:"card"});
-    sin.forEach(k=>{
-      const r=state.res.find(x=>x.kidId===k.id);
-      c.append(el("div",{class:"row"},el("div",{class:"grow"},el("div",{class:"t"},k.name),r?el("div",{class:"s"},ZONAS[r.zona]):null),r?el("span",{class:"pill warn"},"espera auto"):null));
-    });
-    v.append(c);
-  }
 }
 
 function zonaSelect(id){
