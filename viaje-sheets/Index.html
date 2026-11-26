@@ -221,7 +221,6 @@ function estadoHije(v,k){
   const c=el("div",{class:"card",style:"padding:14px 16px;margin-top:12px"});
   if(a){
     c.append(el("div",{class:"t"},a.mine?"Tu auto":"Va en el auto de "+a.driver));
-    if(a.mine)c.append(el("div",{class:"s"},"Conductor: "+a.driver));
     detalleAuto(a,c);
     if(a.mine)c.append(el("button",{class:"link",onclick:async()=>{if(await act("del_auto",{id:a.id},"Auto borrado"))rerender()}},"Borrar mi auto"));
     else c.append(el("div",{class:"note",style:"margin:6px 0 0"},"Para cambiarlo, hacelo desde el celular donde lo anotaron."));
@@ -257,15 +256,11 @@ function vistaMi(v){
 
   if(F.can){
     const g=el("div",{class:"card",style:"padding:4px 16px 16px;margin-top:12px"});
-    g.append(...campo("a-name","Tu nombre","Ej: Laura Pérez","name"),
-      el("label",{},"¿Cuántos jóvenes más podés llevar? (además de tu hije)"),stepper("seats",0,8),
+    g.append(el("label",{},"¿Cuántos jóvenes más podés llevar? (además de tu hije)"),stepper("seats",0,8),
       el("label",{for:"a-zona"},C().zAuto),zonaSelect("a-zona"),
-      ...campo("a-ref",C().rAuto,"Ej: Av. San Martín y Ruta 26","ref"),
       ...campo("a-alias","Alias para aportes de combustible/peajes (opcional)","Ej: laura.perez.mp","alias"));
     const b=el("button",{class:"btn",type:"button",onclick:async()=>{
-      const driver=(F.name||"").trim(),ref=(F.ref||"").trim();
-      if(!driver){toast("Falta tu nombre");return}
-      if(!ref){toast(C().rFalta);return}
+      const driver="Familia "+F.kid.name.split(",")[0].trim(),ref="";
       const alias=(F.alias||"").trim();
       b.disabled=true;
       if(await act("add_auto",{driver,kidId:F.kid.id,kid:F.kid.name,zona:F.zona,ref,seats:F.seats,alias},"Auto anotado"))terminar();

@@ -53,7 +53,7 @@ function viajeApi(name, body, uid, trip) {
     if (name === "add_auto") {
       const driver = clean_(body.driver), ref = clean_(body.ref, 120), kidId = clean_(body.kidId, 100), kid = clean_(body.kid, 100);
       const zona = Number(body.zona), seats = Number(body.seats), alias = clean_(body.alias, 40);
-      if (!driver || !kidId || !kid || !ref || !uid || !(seats >= 0 && seats <= 8) || !(zona >= 0 && zona < ZONAS.length)) err = "Faltan datos";
+      if (!driver || !kidId || !kid || !uid || !(seats >= 0 && seats <= 8) || !(zona >= 0 && zona < ZONAS.length)) err = "Faltan datos";
       else if (alias && !/^[A-Za-z0-9][A-Za-z0-9._-]{5,29}$/.test(alias)) err = "El alias no es válido (6 a 30 letras, números, punto o guion)";
       else if (conAuto(kidId)) err = "Ese joven ya tiene lugar";
       else { dropWaiting(kidId); autos.push({ id: Utilities.getUuid().slice(0, 8), driver, kidId, kid, zona, ref, seats, uid, ts: Date.now(), alias }); changed = true; }
