@@ -1,7 +1,7 @@
 // Viaje Maschwitz -> Retiro. Script vinculado a la planilla "Viaje Retiro 28-11".
 // Pestaña 1 ("Joven"): listado de jóvenes. Autos y Reservas se crean solas.
 
-const ZONAS = ["Maschwitz pueblo","La Bota","Villanueva","Cantón / San Matías / Puertos","Escobar","Savio / Ruta 26","Otro"];
+const ZONAS = ["Maschwitz pueblo","La Bota","Villanueva","Cantón / San Matías / Puertos","Escobar","Savio / Ruta 26","La Pista","Otro"];
 const H_AUTOS = ["id","driver","kidId","kid","zona","ref","seats","uid","ts"];
 const H_RES = ["id","kidId","kid","zona","autoId","uid","ts"];
 
@@ -41,7 +41,7 @@ function viajeApi(name, body, uid) {
     const shA = sheet_("Autos", H_AUTOS), shR = sheet_("Reservas", H_RES);
     let autos = rows_(shA, H_AUTOS), res = rows_(shR, H_RES);
     const kids = SpreadsheetApp.getActive().getSheets()[0].getDataRange().getValues().slice(1)
-      .map(r => String(r[0]).trim()).filter(Boolean).map(n => ({ id: slugify_(n), name: n }));
+      .map(r => [String(r[0]).trim(), String(r[1] === undefined ? "" : r[1]).trim()].filter(Boolean).join(", ")).filter(Boolean).map(n => ({ id: slugify_(n), name: n }));
 
     const libres = a => Math.max(0, Number(a.seats) - res.filter(r => r.autoId === a.id).length);
     const conAuto = k => autos.some(a => a.kidId === k) || res.some(r => r.kidId === k && r.autoId);
@@ -51,7 +51,7 @@ function viajeApi(name, body, uid) {
     if (name === "add_auto") {
       const driver = clean_(body.driver), ref = clean_(body.ref, 120), kidId = clean_(body.kidId, 100), kid = clean_(body.kid, 100);
       const zona = Number(body.zona), seats = Number(body.seats);
-      if (!driver || !kidId || !kid || !ref || !uid || !(seats >= 1 && seats <= 8) || !(zona >= 0 && zona < ZONAS.length)) err = "Faltan datos";
+      if (!driver || !kidId || !kid || !ref || !uid || !(seats >= 0 && seats <= 8) || !(zona >= 0 && zona < ZONAS.length)) err = "Faltan datos";
       else if (conAuto(kidId)) err = "Ese joven ya tiene lugar";
       else { dropWaiting(kidId); autos.push({ id: Utilities.getUuid().slice(0, 8), driver, kidId, kid, zona, ref, seats, uid, ts: Date.now() }); changed = true; }
     } else if (name === "add_res") {
