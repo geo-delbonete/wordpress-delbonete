@@ -59,6 +59,10 @@ nav button svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width
 nav button[aria-selected="true"]{color:var(--accent)}
 .note{font-size:13px;color:var(--muted);margin:8px 8px 0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:20px;font-size:14px;max-width:90%}
+.toast.wait{display:flex;align-items:center;gap:10px;font-weight:600}
+.toast.wait::before{content:"";width:16px;height:16px;border:3px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+body.busy #view{pointer-events:none;opacity:.55;transition:opacity .15s}
 [hidden]{display:none!important}
 </style></head>
 <body>
@@ -101,7 +105,13 @@ async function api(name,body){
   return j;
 }
 const refresh=()=>api("state").then(()=>render()).catch(()=>{});
-async function act(name,body,ok){try{await api(name,body);if(ok)toast(ok);return true}catch(e){toast(e.message);return false}}
+function busy(on){
+  document.body.classList.toggle("busy",on);
+  const t=$("#toast");clearTimeout(toast.h);
+  if(on){t.textContent="Guardando…";t.classList.add("wait");t.hidden=false}
+  else{t.classList.remove("wait");t.hidden=true}
+}
+async function act(name,body,ok){busy(true);try{await api(name,body);busy(false);if(ok)toast(ok);return true}catch(e){busy(false);toast(e.message);return false}}
 
 function render(force){
   const v=$("#view");

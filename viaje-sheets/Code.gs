@@ -43,6 +43,7 @@ function viajeApi(name, body, uid) {
     const kids = SpreadsheetApp.getActive().getSheets()[0].getDataRange().getValues().slice(1)
       .map(r => [String(r[0]).trim(), String(r[1] === undefined ? "" : r[1]).trim()].filter(Boolean).join(", ")).filter(Boolean).map(n => ({ id: slugify_(n), name: n }));
 
+    const snapA = JSON.stringify(autos), snapR = JSON.stringify(res);
     const libres = a => Math.max(0, Number(a.seats) - res.filter(r => r.autoId === a.id).length);
     const conAuto = k => autos.some(a => a.kidId === k) || res.some(r => r.kidId === k && r.autoId);
     const dropWaiting = k => { res = res.filter(r => !(r.kidId === k && !r.autoId)); };
@@ -77,7 +78,10 @@ function viajeApi(name, body, uid) {
     }
 
     if (err) return { error: err };
-    if (changed) { write_(shA, H_AUTOS, autos); write_(shR, H_RES, res); }
+    if (changed) {
+      if (JSON.stringify(autos) !== snapA) write_(shA, H_AUTOS, autos);
+      if (JSON.stringify(res) !== snapR) write_(shR, H_RES, res);
+    }
     const mark = list => list.map(x => { const o = Object.assign({}, x); o.mine = (x.uid === uid); delete o.uid; if ("autoId" in o) o.autoId = o.autoId || null; if ("alias" in o) o.alias = String(o.alias || ""); return o; });
     return { kids, autos: mark(autos), res: mark(res) };
   } finally {
