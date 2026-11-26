@@ -63,13 +63,17 @@ nav button[aria-selected="true"]{color:var(--accent)}
 .toast.wait::before{content:"";width:16px;height:16px;border:3px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 body.busy #view{pointer-events:none;opacity:.55;transition:opacity .15s}
+.seg{display:flex;background:var(--line);border-radius:12px;padding:3px;margin:0 0 14px}
+.seg button{flex:1;border:0;background:none;color:var(--muted);font:600 15px var(--font);min-height:40px;border-radius:10px}
+.seg button[aria-selected="true"]{background:var(--card);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
 [hidden]{display:none!important}
 </style></head>
 <body>
 <main>
-  <h1>Viaje Maschwitz → Retiro</h1>
+  <h1 id="h1"></h1>
   <p class="sub">Autos, lugares libres y jóvenes que necesitan viaje.</p>
-  <div class="card" style="padding:12px 16px;margin-bottom:8px"><div class="t">Sábado 28/11 · el micro sale de Retiro a las 19:00</div><div class="s">Los autos tienen que estar en Retiro antes de las 18:30</div></div>
+  <div class="seg" id="seg" role="tablist"><button data-trip="ida" role="tab">Ida</button><button data-trip="vuelta" role="tab">Vuelta</button></div>
+  <div class="card" style="padding:12px 16px;margin-bottom:8px"><div class="t" id="f1"></div><div class="s" id="f2"></div></div>
   <div id="view"></div>
 </main>
 <div id="toast" class="toast" hidden></div>
@@ -77,7 +81,14 @@ body.busy #view{pointer-events:none;opacity:.55;transition:opacity .15s}
 const ZONAS=["Maschwitz pueblo","La Bota","Villanueva","Cantón / San Matías / Puertos","Escobar","Savio / Ruta 26","La Pista","Las Chacras","Otro"];
 const $=s=>document.querySelector(s);
 let UID="";try{UID=localStorage.getItem("viaje-uid")||"";if(!UID){UID=Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem("viaje-uid",UID)}}catch(e){UID=UID||Math.random().toString(36).slice(2)}
-const state={autos:[],res:[],kids:[],loaded:false,form:{seats:3,zona:0,kid:null,q:"",can:null,name:"",ref:"",alias:""}};
+const CONF={
+  ida:{h1:"Ida Maschwitz → Retiro",f1:"Sábado 28/11 · el micro sale de Retiro a las 19:00",f2:"Los autos tienen que estar en Retiro antes de las 18:30",
+    nota:"llegar a Retiro antes de las 18:30",sale:"Sale de: ",zAuto:"¿Desde qué zona salís?",rAuto:"Calle o referencia de salida (sin número exacto)",rFalta:"Falta desde dónde salís",zHije:"¿Desde qué zona sale tu hije?",tuZona:"Salís de: ",vive:"sale de "},
+  vuelta:{h1:"Vuelta Retiro → Maschwitz",f1:"Sábado 5/12 · el micro llega a Retiro a las 9:30",f2:"Los autos salen de Retiro hacia Maschwitz",
+    nota:"esperar en Retiro desde las 9:30",sale:"Vuelve a: ",zAuto:"¿A qué zona volvés?",rAuto:"Calle o referencia de llegada (sin número exacto)",rFalta:"Falta a dónde volvés",zHije:"¿A qué zona vuelve tu hije?",tuZona:"Volvés a: ",vive:"vuelve a "}
+};
+const C=()=>CONF[state.trip];
+const state={trip:"ida",cache:{},autos:[],res:[],kids:[],loaded:false,form:{seats:3,zona:0,kid:null,q:"",can:null,name:"",ref:"",alias:""}};
 
 const norm=s=>(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
 const slug=s=>norm(s).replace(/ /g,"-").slice(0,80);
@@ -97,11 +108,13 @@ const libres=a=>Math.max(0,a.seats-state.res.filter(r=>r.autoId===a.id).length);
 function conAuto(id){return state.autos.some(a=>a.kidId===id)||state.res.some(r=>r.kidId===id&&r.autoId)}
 const total=()=>state.kids.length||30;
 
-function rpc(name,body){return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(()=>rej(new Error("Sin conexión"))).viajeApi(name,body||{},UID))}
+function rpc(name,body){return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(()=>rej(new Error("Sin conexión"))).viajeApi(name,body||{},UID,state.trip))}
 async function api(name,body){
+  const trip=state.trip;
   const j=await rpc(name,body);
   if(j.error)throw new Error(j.error);
-  state.kids=j.kids;state.autos=j.autos;state.res=j.res;state.loaded=true;
+  state.cache[trip]={kids:j.kids,autos:j.autos,res:j.res};
+  if(trip===state.trip){state.kids=j.kids;state.autos=j.autos;state.res=j.res;state.loaded=true}
   return j;
 }
 const refresh=()=>api("state").then(()=>render()).catch(()=>{});
@@ -122,6 +135,15 @@ function render(force){
   vistaMi(v);vistaInicio(v);
 }
 const rerender=()=>render(true);
+function setTrip(t,skipSave){
+  state.trip=t;state.form.can=null;
+  try{if(!skipSave)localStorage.setItem("viaje-trip",t)}catch(e){}
+  const d=state.cache[t];
+  if(d){state.kids=d.kids;state.autos=d.autos;state.res=d.res;state.loaded=true}else{state.loaded=false}
+  document.querySelectorAll("#seg button").forEach(b=>b.setAttribute("aria-selected",b.dataset.trip===t));
+  $("#h1").textContent=CONF[t].h1;$("#f1").textContent=CONF[t].f1;$("#f2").textContent=CONF[t].f2;
+  render(true);refresh();window.scrollTo(0,0);
+}
 
 function picker(){
   const wrap=el("div");
@@ -188,9 +210,9 @@ function terminar(){state.form.can=null;rerender()}
 
 function detalleAuto(a,c){
   const kids=state.res.filter(r=>r.autoId===a.id);
-  c.append(el("div",{class:"s"},ZONAS[a.zona]+(a.ref?" · "+a.ref:"")),
+  c.append(el("div",{class:"s"},C().sale+ZONAS[a.zona]+(a.ref?" · "+a.ref:"")),
     el("div",{class:"s"},"Lleva a: "+[a.kid,...kids.map(k=>k.kid)].join(" · ")),
-    el("div",{class:"s"},(libres(a)?libres(a)+" libres de "+a.seats:"Completo")+" · llegar a Retiro antes de las 18:30"));
+    el("div",{class:"s"},(libres(a)?libres(a)+" libres de "+a.seats:"Completo")+" · "+C().nota));
   if(a.alias)c.append(el("div",{class:"s"},"Aporte para combustible/peajes · alias: ",el("b",{style:"user-select:all;color:var(--fg)"},a.alias)));
 }
 function estadoHije(v,k){
@@ -237,13 +259,13 @@ function vistaMi(v){
     const g=el("div",{class:"card",style:"padding:4px 16px 16px;margin-top:12px"});
     g.append(...campo("a-name","Tu nombre","Ej: Laura Pérez","name"),
       el("label",{},"¿Cuántos jóvenes más podés llevar? (además de tu hije)"),stepper("seats",0,8),
-      el("label",{for:"a-zona"},"¿Desde qué zona salís?"),zonaSelect("a-zona"),
-      ...campo("a-ref","Calle o referencia de salida (sin número exacto)","Ej: Av. San Martín y Ruta 26","ref"),
+      el("label",{for:"a-zona"},C().zAuto),zonaSelect("a-zona"),
+      ...campo("a-ref",C().rAuto,"Ej: Av. San Martín y Ruta 26","ref"),
       ...campo("a-alias","Alias para aportes de combustible/peajes (opcional)","Ej: laura.perez.mp","alias"));
     const b=el("button",{class:"btn",type:"button",onclick:async()=>{
       const driver=(F.name||"").trim(),ref=(F.ref||"").trim();
       if(!driver){toast("Falta tu nombre");return}
-      if(!ref){toast("Falta desde dónde salís");return}
+      if(!ref){toast(C().rFalta);return}
       const alias=(F.alias||"").trim();
       b.disabled=true;
       if(await act("add_auto",{driver,kidId:F.kid.id,kid:F.kid.name,zona:F.zona,ref,seats:F.seats,alias},"Auto anotado"))terminar();
@@ -252,7 +274,7 @@ function vistaMi(v){
     g.append(b);v.append(g);
   }else{
     const g=el("div",{class:"card",style:"padding:4px 16px 16px;margin-top:12px"});
-    g.append(el("label",{for:"p-zona"},"¿Desde qué zona sale tu hije?"),zonaSelect("p-zona"));
+    g.append(el("label",{for:"p-zona"},C().zHije),zonaSelect("p-zona"));
     v.append(g);
     v.append(el("h2",{},"Autos con lugar, del más cercano al más lejano"));
     const c=el("div",{class:"card"});
@@ -262,7 +284,7 @@ function vistaMi(v){
       const d=zdist(F.zona,a.zona);
       const cerca=d===0?"Misma zona":d>=50?"Zona sin calcular":d===1?"Zona vecina":"A "+d+" zonas";
       c.append(el("div",{class:"row"},
-        el("div",{class:"grow"},el("div",{class:"t"},a.driver),el("div",{class:"s"},ZONAS[a.zona]+(a.ref?" · "+a.ref:"")),el("div",{class:"s"},cerca+" · "+libres(a)+" libres")),
+        el("div",{class:"grow"},el("div",{class:"t"},a.driver),el("div",{class:"s"},C().sale+ZONAS[a.zona]+(a.ref?" · "+a.ref:"")),el("div",{class:"s"},cerca+" · "+libres(a)+" libres")),
         el("button",{class:"btn sm",type:"button",onclick:()=>reservar(a)},"Reservar")));
     });
     v.append(c);
@@ -278,6 +300,8 @@ async function reservar(a){
   else{await refresh()}
 }
 
-render();refresh();setInterval(refresh,10000);
+document.querySelectorAll("#seg button").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.trip!==state.trip)setTrip(b.dataset.trip)}));
+let t0="ida";try{const s=localStorage.getItem("viaje-trip");if(s==="ida"||s==="vuelta")t0=s}catch(e){}
+setTrip(t0,true);setInterval(refresh,10000);
 </script>
 </body></html>

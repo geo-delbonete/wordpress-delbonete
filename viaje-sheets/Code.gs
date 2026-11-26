@@ -32,13 +32,14 @@ function write_(sh, headers, list) {
 function clean_(s, n) { return String(s || "").replace(/<[^>]*>/g, "").trim().slice(0, n || 80); }
 
 // Única función que llama la página.
-function viajeApi(name, body, uid) {
+function viajeApi(name, body, uid, trip) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     uid = clean_(uid, 40);
     body = body || {};
-    const shA = sheet_("Autos", H_AUTOS), shR = sheet_("Reservas", H_RES);
+    const sfx = trip === "vuelta" ? " vuelta" : "";
+    const shA = sheet_("Autos" + sfx, H_AUTOS), shR = sheet_("Reservas" + sfx, H_RES);
     let autos = rows_(shA, H_AUTOS), res = rows_(shR, H_RES);
     const kids = SpreadsheetApp.getActive().getSheets()[0].getDataRange().getValues().slice(1)
       .map(r => [String(r[0]).trim(), String(r[1] === undefined ? "" : r[1]).trim()].filter(Boolean).join(", ")).filter(Boolean).map(n => ({ id: slugify_(n), name: n }));
